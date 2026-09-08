@@ -730,6 +730,7 @@ const TOOL_LABELS: Record<string, { icon: React.ReactNode; label: string; field?
   "tool-make_plan": { icon: <ListChecks className="size-3.5" />, label: "Plan", field: "title" },
   "tool-generate_image": { icon: <ImageIcon className="size-3.5" />, label: "Image", field: "prompt" },
   "tool-generate_video": { icon: <Video className="size-3.5" />, label: "Vidéo", field: "prompt" },
+  "tool-edit_video": { icon: <Video className="size-3.5" />, label: "Montage vidéo", field: "fileName" },
   "tool-generate_music": { icon: <Music className="size-3.5" />, label: "Musique", field: "prompt" },
   "tool-text_to_speech": { icon: <Mic className="size-3.5" />, label: "Voix", field: "text" },
   "tool-create_podcast": { icon: <Mic className="size-3.5" />, label: "Podcast", field: "title" },

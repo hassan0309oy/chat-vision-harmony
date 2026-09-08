@@ -11,7 +11,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { deerflowTools } from "@/lib/deerflow-tools.server";
 import { loadMcpTools } from "@/lib/providers/mcp.server";
 import { readPreferences } from "@/lib/providers/settings.server";
-import { mediaTools } from "@/lib/media-tools.server";
+import { createVideoEditingTools, mediaTools } from "@/lib/media-tools.server";
 import { agentTools } from "@/lib/agent-tools.server";
 import { createMediaAnalysisTools } from "@/lib/media-analysis-tools.server";
 import { getUserFromRequest } from "@/lib/auth.server";
@@ -39,6 +39,7 @@ Outils réels à ta disposition:
 - delegate : confie une sous-mission autonome à un sous-agent spécialisé (recherche, media, code, analyse) et intègre son compte rendu.
 - analyze_attached_media : OBLIGATOIRE dès qu'une vidéo ou un fichier audio est joint (utilise l'identifiant fourni dans le contexte des pièces jointes). N'affirme jamais avoir regardé une vidéo sans avoir appelé cet outil.
 - analyze_media_url : analyse une vidéo/audio depuis une URL ou un lien Google Drive partagé.
+- edit_video : OBLIGATOIRE lorsqu'on demande de modifier ou monter une vidéo jointe. Analyse d'abord la source et toute vidéo de référence, puis fournis des arguments FFmpeg complets et un fichier ASS pour les sous-titres stylisés. Cet outil produit et stocke le vrai MP4 ; n'utilise jamais run_code pour prétendre livrer une vidéo.
 
 Interdits: ne simule jamais une action, n'annonce jamais un fichier qui n'a pas été réellement produit par un outil, n'invente pas de sources, ne prétends jamais avoir lu un fichier dont l'extraction a échoué.`;
 
@@ -182,6 +183,7 @@ export const Route = createFileRoute("/api/chat")({
           tools: {
             ...deerflowTools,
             ...mediaTools,
+            ...createVideoEditingTools(user.id),
             ...agentTools,
             ...createMediaAnalysisTools(user.id),
             ...mcp.tools,

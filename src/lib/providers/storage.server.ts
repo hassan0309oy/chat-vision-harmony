@@ -11,6 +11,7 @@ export type StoredAsset = {
   mimeType: string;
   provider: string;
   bytes: number;
+  fileName: string;
 };
 
 const EXT: Record<string, string> = {
@@ -74,6 +75,7 @@ export async function storeAsset(params: {
     mimeType: params.mimeType,
     provider: params.provider,
     bytes: params.data.byteLength,
+    fileName: name,
   };
 }
 
