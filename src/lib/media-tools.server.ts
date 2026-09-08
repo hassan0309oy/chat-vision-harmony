@@ -10,6 +10,7 @@ import { livePreview, runInSandbox } from "./providers/sandbox.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { optionalEnv } from "./providers/errors.server";
 import { preferredProvider } from "./providers/settings.server";
+import { editAttachedVideo } from "./providers/video-edit.server";
 
 
 /** Toute erreur devient un message exploitable par l'agent — jamais un faux succès. */
@@ -159,6 +160,33 @@ export const livePreviewTool = tool({
   }),
   execute: async (input) => attempt("l'aperçu en direct", () => livePreview(input)),
 });
+
+/** Outil de montage lié à l'utilisateur : la source doit lui appartenir. */
+export function createVideoEditingTools(userId: string) {
+  return {
+    edit_video: tool({
+      description:
+        "Monte réellement une vidéo jointe avec FFmpeg et renvoie le MP4 final avec aperçu et téléchargement. Utilise-le pour recadrer, couper, masquer des logos, ajouter des sous-titres ASS/SRT animés, étalonner les couleurs, mixer la voix, la musique et les effets sonores. Les chemins disponibles sont /tmp/input.mp4 (ou extension source), /tmp/subtitles.ass ou /tmp/subtitles.srt, et la sortie est ajoutée automatiquement : ne mets ni `ffmpeg`, ni entrée, ni chemin de sortie dans ffmpegArgs.",
+      inputSchema: z.object({
+        attachmentId: z.string().uuid().describe("Identifiant de la vidéo jointe à monter."),
+        ffmpegArgs: z
+          .array(z.string())
+          .describe("Arguments FFmpeg séparés, par exemple ['-vf', 'crop=...', '-c:v', 'libx264', '-c:a', 'aac']."),
+        subtitleFile: z
+          .object({
+            format: z.enum(["ass", "srt"]),
+            content: z.string(),
+          })
+          .optional()
+          .describe("Sous-titres complets. Dans les filtres, référence /tmp/subtitles.ass ou /tmp/subtitles.srt."),
+        fileName: z.string().optional().describe("Nom du MP4 final."),
+        description: z.string().optional().describe("Résumé du montage appliqué."),
+      }),
+      execute: async (input) =>
+        attempt("le montage vidéo", () => editAttachedVideo({ ...input, userId })),
+    }),
+  };
+}
 
 export const browseWebTool = tool({
   description:
