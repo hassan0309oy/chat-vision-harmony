@@ -26,11 +26,6 @@ function shellQuote(value: string) {
   return `'${value.replace(/'/g, `'"'"'`)}'`;
 }
 
-function inputExtension(name: string) {
-  const match = name.toLowerCase().match(/\.([a-z0-9]{1,8})$/);
-  return match?.[1] ?? "mp4";
-}
-
 /**
  * Monte réellement une vidéo jointe avec FFmpeg dans un environnement isolé,
  * puis rapatrie et stocke le MP4 produit avant de fermer le sandbox.
@@ -55,7 +50,7 @@ export async function editAttachedVideo(params: EditVideoParams): Promise<Stored
   }
 
   const inputBytes = await downloadAttachment(attachment.storage_path);
-  const inputPath = `/tmp/input.${inputExtension(attachment.name)}`;
+  const inputPath = "/tmp/input.mp4";
   const outputPath = "/tmp/output.mp4";
   const subtitlePath = params.subtitleFile ? `/tmp/subtitles.${params.subtitleFile.format}` : null;
   const sandbox = await Sandbox.create({ apiKey, timeoutMs: 10 * 60 * 1000 });
@@ -89,7 +84,7 @@ export async function editAttachedVideo(params: EditVideoParams): Promise<Stored
       data: outputBytes,
       mimeType: "video/mp4",
       provider: "e2b-ffmpeg",
-      prompt: params.description,
+      ...(params.description ? { prompt: params.description } : {}),
       fileName: params.fileName ?? `montage-${Date.now()}.mp4`,
       metadata: {
         sourceAttachmentId: params.attachmentId,
