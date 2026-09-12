@@ -749,6 +749,16 @@ const TOOL_LABELS: Record<string, { icon: React.ReactNode; label: string; field?
   "tool-build_app": { icon: <Monitor className="size-3.5" />, label: "Construction d'app", field: "name" },
   "tool-deep_research": { icon: <Microscope className="size-3.5" />, label: "Deep research", field: "question" },
   "tool-delegate": { icon: <Users className="size-3.5" />, label: "Sous-agent", field: "role" },
+  "tool-analyze_visual_reference": {
+    icon: <ImageIcon className="size-3.5" />,
+    label: "Analyse visuelle",
+    field: "question",
+  },
+  "tool-generate_image_from_reference": {
+    icon: <ImageIcon className="size-3.5" />,
+    label: "Image d'après référence",
+    field: "prompt",
+  },
 };
 
 function MessageRow({
