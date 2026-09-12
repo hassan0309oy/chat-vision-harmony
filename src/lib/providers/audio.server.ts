@@ -25,33 +25,62 @@ async function elevenTts(text: string, voiceId?: string) {
   return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: "audio/mpeg" };
 }
 
-/** Kokoro — via Hugging Face (hexgrad/Kokoro-82M) ou un serveur auto-hébergé. */
+/**
+ * Kokoro (projet open source kokoro-web) :
+ * 1. serveur auto-hébergé compatible OpenAI (KOKORO_API_URL, ex. déploiement de
+ *    https://github.com/eduardolat/kokoro-web) ;
+ * 2. sinon le modèle Kokoro-82M hébergé chez Replicate ;
+ * 3. sinon Hugging Face (hexgrad/Kokoro-82M).
+ */
 async function kokoroTts(text: string, voiceId?: string) {
   const base = optionalEnv("KOKORO_API_URL");
-  if (!base) {
-    const token = optionalEnv("HF_TOKEN");
-    if (!token) throw new Error("Ni KOKORO_API_URL ni HF_TOKEN ne sont configurées");
-    const { InferenceClient } = await import("@huggingface/inference");
-    const blob = (await new InferenceClient(token).textToSpeech({
-      model: optionalEnv("HF_TTS_MODEL") ?? "hexgrad/Kokoro-82M",
-      inputs: text,
-    })) as unknown as Blob;
-    return {
-      bytes: new Uint8Array(await blob.arrayBuffer()),
-      mimeType: blob.type || "audio/wav",
-    };
+  if (base) {
+    const root = base.replace(/\/$/, "").replace(/\/v1$/, "");
+    const res = await fetch(`${root}/v1/audio/speech`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(optionalEnv("KOKORO_API_KEY")
+          ? { Authorization: `Bearer ${optionalEnv("KOKORO_API_KEY")}` }
+          : {}),
+      },
+      body: JSON.stringify({
+        model: optionalEnv("KOKORO_MODEL") ?? "model_q8f16",
+        input: text,
+        voice: voiceId || "af_heart",
+        response_format: "mp3",
+      }),
+    });
+    if (!res.ok) throw new Error(`Kokoro auto-hébergé [${res.status}] ${(await res.text()).slice(0, 300)}`);
+    return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: "audio/mpeg" };
   }
-  const res = await fetch(`${base.replace(/\/$/, "")}/v1/audio/speech`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(optionalEnv("KOKORO_API_KEY") ? { Authorization: `Bearer ${optionalEnv("KOKORO_API_KEY")}` } : {}),
-    },
-    body: JSON.stringify({ model: "model_q8f16", input: text, voice: voiceId || "af_heart" }),
-  });
-  if (!res.ok) throw new Error(`Kokoro [${res.status}] ${(await res.text()).slice(0, 300)}`);
-  return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: "audio/mpeg" };
+
+  if (optionalEnv("REPLICATE_API_TOKEN")) {
+    try {
+      const url = await replicateRun(optionalEnv("REPLICATE_KOKORO_MODEL") ?? "jaaari/kokoro-82m", {
+        text,
+        voice: voiceId || "af_bella",
+        speed: 1,
+      });
+      return downloadBytes(url, "audio/wav");
+    } catch (error) {
+      if (!optionalEnv("HF_TOKEN")) throw error;
+    }
+  }
+
+  const token = optionalEnv("HF_TOKEN");
+  if (!token) throw new Error("Aucun moteur Kokoro disponible (KOKORO_API_URL, REPLICATE_API_TOKEN ou HF_TOKEN)");
+  const { InferenceClient } = await import("@huggingface/inference");
+  const blob = (await new InferenceClient(token).textToSpeech({
+    model: optionalEnv("HF_TTS_MODEL") ?? "hexgrad/Kokoro-82M",
+    inputs: text,
+  })) as unknown as Blob;
+  return {
+    bytes: new Uint8Array(await blob.arrayBuffer()),
+    mimeType: blob.type || "audio/wav",
+  };
 }
+
 
 
 /** Piper (serveur auto-hébergé, URL configurable). */
